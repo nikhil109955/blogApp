@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import {Button} from 'flowbite-react';
 import { Link} from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
+import OAuth from '../components/OAuth';
+
+
 
 
 
@@ -24,14 +27,14 @@ const SignIn = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const {email, password } = formData;
-
-    // Validate that username and email are provided
-    if (!email) {
-      alert('Email are required.');
+    const { email, password } = formData;
+  
+    // Validate that email and password are provided
+    if (!email || !password) {
+      alert('Email and password are required.');
       return;
     }
-
+  
     try {
       const response = await fetch('/api/auth/signin', {
         method: 'POST',
@@ -40,19 +43,23 @@ const SignIn = () => {
         },
         body: JSON.stringify(formData)
       });
+      const data = await response.json(); // Parse response body as JSON
       if (response.ok) {
-        console.log('User signed up successfully!');
+        console.log('User signed in successfully!');
         // Redirect to another page or show a success message
         navigate('/');
       } else {
-        console.error('Failed to sign up:', await response.text());
+        console.error('Failed to sign in:', data.message);
         // Display an error message to the user
+        alert(data.message);
       }
     } catch (error) {
-      console.error('Error signing up:', error);
+      console.error('Error signing in:', error);
       // Display an error message to the user
+      alert('An error occurred while signing in. Please try again later.');
     }
   };
+  
 
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '290px' }}>
@@ -73,11 +80,12 @@ const SignIn = () => {
         <label htmlFor="password" style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Password:</label>
         <input type="password" id="password" name="password" value={formData.password} onChange={handleChange} style={{ width: '100%', padding: '10px', borderRadius: '5px', border: '1px solid #ccc', boxSizing: 'border-box' }} />
       </div>
-      <Button type="submit" style={{ display: 'block', width: '100%', backgroundColor: '#007bff', color: '#fff', padding: '10px', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>Sign Up</Button>
+      <Button type="submit" style={{ display: 'block', width: '100%', backgroundColor: '#007bff', color: '#fff', padding: '10px', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>Sign In</Button>
+        <OAuth/>
       <div className='flex gap-2 text-sm mt-5'>
-        <span style={{ fontWeight: 'bold' }}>Have an account?</span>
-        <Link to ='/sign-in' className='text-blue-500' style={{ textDecoration: 'none', color: '#007bff', fontWeight: 'bold', cursor: 'pointer' }}>
-          Sign In
+        <span style={{ fontWeight: 'bold' }}>Don't Have an account?</span>
+        <Link to ='/sign-up' className='text-blue-500' style={{ textDecoration: 'none', color: '#007bff', fontWeight: 'bold', cursor: 'pointer' }}>
+          Sign up
         </Link>
       </div>
     </form>
