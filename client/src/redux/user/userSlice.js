@@ -1,3 +1,5 @@
+// src/redux/user/userSlice.js
+
 import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
@@ -15,7 +17,8 @@ const userSlice = createSlice({
       state.error = null;
     },
     signInSuccess: (state, action) => {
-      state.currentUser = action.payload;
+      console.log('User data:', action.payload);
+      state.currentUser = action.payload; // Assuming action.payload contains user data
       state.loading = false;
       state.error = null;
     },
@@ -23,12 +26,12 @@ const userSlice = createSlice({
       state.loading = false;
       state.error = action.payload;
     },
-    /*updateStart: (state) => {
+    updateStart: (state) => {
       state.loading = true;
       state.error = null;
     },
     updateSuccess: (state, action) => {
-      state.currentUser = action.payload;
+      state.currentUser = { ...state.currentUser, ...action.payload };
       state.loading = false;
       state.error = null;
     },
@@ -54,7 +57,6 @@ const userSlice = createSlice({
       state.error = null;
       state.loading = false;
     },
-    */
   },
 });
 
@@ -62,13 +64,13 @@ export const {
   signInStart,
   signInSuccess,
   signInFailure,
-  /*updateStart,
+  updateStart,
   updateSuccess,
   updateFailure,
   deleteUserStart,
   deleteUserSuccess,
   deleteUserFailure,
-  signoutSuccess,*/
+  signoutSuccess,
 } = userSlice.actions;
 
 export default userSlice.reducer;
