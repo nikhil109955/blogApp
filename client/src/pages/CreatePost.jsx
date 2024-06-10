@@ -7,8 +7,9 @@ import {
   ref,
   uploadBytesResumable,
 } from 'firebase/storage';
+import { getAuth } from 'firebase/auth';
 import { app } from '../firebase';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CircularProgressbar } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 import { useNavigate } from 'react-router-dom';
@@ -21,8 +22,20 @@ export default function CreatePost() {
   const [publishError, setPublishError] = useState(null);
 
   const navigate = useNavigate();
+  const auth = getAuth(app);
 
-  const handleUpdloadImage = async () => {
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (!user) {
+        // Redirect to sign-in page if the user is not authenticated
+        navigate('/sign-in');
+      }
+    });
+
+    return () => unsubscribe();
+  }, [auth, navigate]);
+
+  const handleUploadImage = async () => {
     try {
       if (!file) {
         setImageUploadError('Please select an image');
@@ -33,6 +46,7 @@ export default function CreatePost() {
       const fileName = new Date().getTime() + '-' + file.name;
       const storageRef = ref(storage, fileName);
       const uploadTask = uploadBytesResumable(storageRef, file);
+
       uploadTask.on(
         'state_changed',
         (snapshot) => {
@@ -41,7 +55,7 @@ export default function CreatePost() {
           setImageUploadProgress(progress.toFixed(0));
         },
         (error) => {
-          setImageUploadError('Image upload failed');
+          setImageUploadError('Image upload failed: ' + error.message);
           setImageUploadProgress(null);
         },
         () => {
@@ -53,13 +67,17 @@ export default function CreatePost() {
         }
       );
     } catch (error) {
-      setImageUploadError('Image upload failed');
+      setImageUploadError('Image upload failed: ' + error.message);
       setImageUploadProgress(null);
-      console.log(error);
     }
   };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.title || !formData.category || !formData.content || !formData.image) {
+      setPublishError('All fields are required');
+      return;
+    }
     try {
       const res = await fetch('/api/post/create', {
         method: 'POST',
@@ -73,15 +91,12 @@ export default function CreatePost() {
         setPublishError(data.message);
         return;
       }
-
-      if (res.ok) {
-        setPublishError(null);
-        navigate(`/post/${data.slug}`);
-      }
+      navigate(`/post/${data.slug}`);
     } catch (error) {
-      setPublishError('Something went wrong');
+      setPublishError('Something went wrong: ' + error.message);
     }
   };
+
   return (
     <div className='p-3 max-w-3xl mx-auto min-h-screen'>
       <h1 className='text-center text-3xl my-7 font-semibold'>Create a post</h1>
@@ -98,11 +113,12 @@ export default function CreatePost() {
             }
           />
           <Select
+            required
             onChange={(e) =>
               setFormData({ ...formData, category: e.target.value })
             }
           >
-            <option value='uncategorized'>Select a category</option>
+            <option value=''>Select a category</option>
             <option value='javascript'>JavaScript</option>
             <option value='reactjs'>React.js</option>
             <option value='nextjs'>Next.js</option>
@@ -119,8 +135,8 @@ export default function CreatePost() {
             gradientDuoTone='purpleToBlue'
             size='sm'
             outline
-            onClick={handleUpdloadImage}
-            disabled={imageUploadProgress}
+            onClick={handleUploadImage}
+            disabled={imageUploadProgress !== null}
           >
             {imageUploadProgress ? (
               <div className='w-16 h-16'>
@@ -147,9 +163,7 @@ export default function CreatePost() {
           placeholder='Write something...'
           className='h-72 mb-12'
           required
-          onChange={(value) => {
-            setFormData({ ...formData, content: value });
-          }}
+          onChange={(value) => setFormData({ ...formData, content: value })}
         />
         <Button type='submit' gradientDuoTone='purpleToPink'>
           Publish
