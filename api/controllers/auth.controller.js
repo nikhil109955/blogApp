@@ -3,6 +3,7 @@ import bcryptjs from 'bcryptjs';
 import { errorHandler } from '../utils/error.js';
 import jwt from 'jsonwebtoken';
 
+// Signup Controller
 export const signup = async (req, res, next) => {
   const { username, email, password } = req.body;
 
@@ -11,6 +12,11 @@ export const signup = async (req, res, next) => {
   }
 
   try {
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return next(errorHandler(409, 'User already exists'));
+    }
+
     const hashedPassword = bcryptjs.hashSync(password, 10);
 
     const newUser = new User({
@@ -26,6 +32,7 @@ export const signup = async (req, res, next) => {
   }
 };
 
+// Signin Controller
 export const signin = async (req, res, next) => {
   const { email, password } = req.body;
 
@@ -38,7 +45,7 @@ export const signin = async (req, res, next) => {
     if (!validUser) {
       return next(errorHandler(404, 'User not found'));
     }
-    
+
     const validPassword = bcryptjs.compareSync(password, validUser.password);
     if (!validPassword) {
       return next(errorHandler(400, 'Invalid password'));
@@ -47,7 +54,7 @@ export const signin = async (req, res, next) => {
     const token = jwt.sign(
       { id: validUser._id, isAdmin: validUser.isAdmin },
       process.env.JWT_SECRET,
-      { expiresIn: '1h' }  // You can adjust the token expiration as needed
+      { expiresIn: '1h' }
     );
 
     const { password: pass, ...rest } = validUser._doc;
@@ -56,7 +63,7 @@ export const signin = async (req, res, next) => {
       .status(200)
       .cookie('access_token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+        secure: process.env.NODE_ENV === 'production', 
         sameSite: 'strict',
       })
       .json(rest);
@@ -65,6 +72,7 @@ export const signin = async (req, res, next) => {
   }
 };
 
+// Google Auth Controller
 export const google = async (req, res, next) => {
   const { email, name, googlePhotoUrl } = req.body;
 
@@ -76,8 +84,11 @@ export const google = async (req, res, next) => {
     let user = await User.findOne({ email });
 
     if (!user) {
-      const generatedPassword = bcryptjs.hashSync(Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8), 10);
-      
+      const generatedPassword = bcryptjs.hashSync(
+        Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8),
+        10
+      );
+
       user = new User({
         username: `${name.toLowerCase().split(' ').join('')}${Math.random().toString(9).slice(-4)}`,
         email,
@@ -91,7 +102,7 @@ export const google = async (req, res, next) => {
     const token = jwt.sign(
       { id: user._id, isAdmin: user.isAdmin },
       process.env.JWT_SECRET,
-      { expiresIn: '1h' }  // You can adjust the token expiration as needed
+      { expiresIn: '1h' }
     );
 
     const { password, ...rest } = user._doc;
@@ -100,7 +111,7 @@ export const google = async (req, res, next) => {
       .status(200)
       .cookie('access_token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+        secure: process.env.NODE_ENV === 'production', 
         sameSite: 'strict',
       })
       .json(rest);
