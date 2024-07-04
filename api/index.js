@@ -10,45 +10,38 @@ import path from 'path';
 
 dotenv.config();
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+mongoose
+  .connect(process.env.MONGO)
+  .then(() => {
+    console.log('MongoDb is connected');
+  })
+  .catch((err) => {
+    console.log(err);
+  });
 
-// Middleware
+const __dirname = path.resolve();
+
+const app = express();
+
 app.use(express.json());
 app.use(cookieParser());
 
-// MongoDB Connection
-mongoose
-  .connect(process.env.MONGO, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => {
-    console.log('MongoDB connected');
-  })
-  .catch((err) => {
-    console.error('MongoDB connection error:', err);
-  });
+app.listen(3000, () => {
+  console.log('Server is running on port 3000!');
+});
 
-// Routes
 app.use('/api/user', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/post', postRoutes);
 app.use('/api/comment', commentRoutes);
 
-// Static files (client build)
-const __dirname = path.resolve();
-const clientDistPath = path.join(__dirname, 'client', 'dist');
-app.use(express.static(clientDistPath));
+app.use(express.static(path.join(__dirname, '/client/dist')));
 
-// Serve index.html for all routes (client-side routing)
 app.get('*', (req, res) => {
-  res.sendFile(path.join(clientDistPath, 'index.html'));
+  res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html'));
 });
 
-// Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
   const statusCode = err.statusCode || 500;
   const message = err.message || 'Internal Server Error';
   res.status(statusCode).json({
@@ -56,9 +49,4 @@ app.use((err, req, res, next) => {
     statusCode,
     message,
   });
-});
-
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
 });
